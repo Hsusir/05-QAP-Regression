@@ -1,0 +1,116 @@
+---
+title: "Quadratic Assignment Procedure (QAP) Regression"
+author: "許sir"
+---
+
+## Source: McFarland, Daniel, et.al. 2010. “Social Network Analysis Labs in R.” Stanford University..##
+```{}
+FRN(友誼): Friendship (2 = best friend, 1 = friend, 0 = not friend)
+GND(性別): Gender homophily
+RCE(族群): Race homophily
+SEAT(座位位置): who sits next to whom (2 = faces, 1 = behind, 0 = not adjacent)
+SSL(互動): social interactions per hour
+TSL(任務互動): task interactions per hour(例如:交作業)
+```
+
+
+## 研究敘述##
+```{}
+這組data是學生和學生的兩兩關係
+研究題目是要看第二學期的朋友關係會受到第一學期的什麼因素影響?
+
+```
+
+
+### **[設定所需的函式庫(libraries)以及載入資料]**
+```{}
+install.packages("sna")
+install.packages("NetData")
+```
+
+```{r message=FALSE, warning=FALSE, results='hide'}
+library(sna)
+
+setwd("/media/hsusir/DATA/Rdata Practice/05Network/QAP-Regression")
+data(studentnets.mrqap173, package="NetData")
+
+```
+
+### **[Part 1].Data-distribution**
+```{r message=FALSE, warning=FALSE}
+ls() #總共有8組data-frame
+
+```
+#### **1-1.Predictor matrices**
+```{r message=FALSE, warning=FALSE}
+#這些都是X，要轉成矩陣
+m173_sem1_SSL <- as.matrix(m173_sem1_SSL)
+m173_sem1_TSL <- as.matrix(m173_sem1_TSL)
+m173_sem1_FRN <- as.matrix(m173_sem1_FRN)
+m173_sem1_SEAT <- as.matrix(m173_sem1_SEAT)
+m173_sem1_RCE <- as.matrix(m173_sem1_RCE)
+m173_sem1_GND <- as.matrix(m173_sem1_GND)
+```
+
+#### **1-2.Response matrices**
+```{r message=FALSE, warning=FALSE}
+#這兩組是第二學期的資料
+m173_sem2_SSL <- as.matrix(m173_sem2_SSL)
+m173_sem2_TSL <- as.matrix(m173_sem2_TSL)
+```
+
+#### **1-3.Predictor matrices: creating a # 3-d matrix (predictor x n x n)**
+```{r message=FALSE, warning=FALSE}
+predictor_matrices <- array(NA, c(6, length(m173_sem1_SSL[1,]),length(m173_sem1_SSL[1,]))) 
+# OR: predictor_matrices <- array(NA, c(6, 26,26))
+#因為要弄成3D，所以需要用陣列的型式，因此把X的6層矩陣疊起來
+predictor_matrices[1,,] <- m173_sem1_SSL
+predictor_matrices[2,,] <- m173_sem1_TSL
+predictor_matrices[3,,] <- m173_sem1_FRN
+predictor_matrices[4,,] <- m173_sem1_SEAT
+predictor_matrices[5,,] <- m173_sem1_RCE
+predictor_matrices[6,,] <- m173_sem1_GND
+```
+
+### **[Part 2].Modeling**
+```{}
+    要做兩組model
+    SSL2 <- SSL1 + TSL1 + FRN1 + SEAT1 + RCE + GND
+    TSL2 <- TSL1 + SSL1 + FRN1 + SEAT1 + RCE + GND
+```
+
+
+
+#### **2-1.Model A. **
+```{r message=FALSE, warning=FALSE}
+# SSL2 <- SSL1 + TSL1 + FRN1 + SEAT1 + RCE + GND
+
+# Fit a netlm model: the response matrix and the array of predictor matrices
+nl<-netlm(m173_sem2_SSL, predictor_matrices)
+
+# Make the model easier ot read
+nlLabeled <- list()
+nlLabeled <- summary(nl)
+
+# adding lables
+nlLabeled$names <- c("Intercept", "SSL1", "TSL1", "Friends", "Seat","Race","Gender")
+
+# Round the ocefficients to two decimals
+nlLabeled$coefficients = round(nlLabeled$coefficients, 2)
+nlLabeled
+```
+- 報表要區分左右尾或雙尾
+
+#### **2-2.Model B. **
+```{r message=FALSE, warning=FALSE}
+# TSL2 <- TSL1 + SSL1 + FRN1 + SEAT1 + RCE + GND
+n2<-netlm(m173_sem2_TSL, predictor_matrices)
+
+n2Labeled <- list()
+n2Labeled <- summary(n2)
+n2Labeled$names <- c("Intercept", "SSL1", "TSL1", "Friends", "Seat","Race","Gender")
+
+n2Labeled$coefficients = round(n2Labeled$coefficients, 2)
+n2Labeled
+```
+
